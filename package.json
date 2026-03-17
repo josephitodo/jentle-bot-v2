@@ -1,1 +1,14 @@
-
+{
+  "name": "jentle-bot-v2",
+  "version": "1.0.0",
+  "description": "WhatsApp Bot by Jentle",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "express": "^4.18.2",
+    "pino": "^8.0.0"
+  }
+}
