@@ -12,7 +12,7 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
 
-// 🔑 PUT YOUR NUMBER HERE
+// 🔑 YOUR NUMBER
 const phoneNumber = "2348106184386"; // replace with your number
 
 async function startBot() {
@@ -26,20 +26,27 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  // 📲 Auto pairing code
-  if (!sock.authState.creds.registered) {
-    try {
-      const code = await sock.requestPairingCode(phoneNumber);
-      console.log("\n🔑 Your Pairing Code:", code);
-      console.log("👉 Go to WhatsApp > Linked Devices > Link with phone number\n");
-    } catch (err) {
-      console.log("❌ Error generating pairing code:", err);
-    }
-  }
+  let pairingCodeSent = false;
 
-  // 🔄 Connection handling
-  sock.ev.on("connection.update", (update) => {
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
+
+    if (connection === "open") {
+      console.log("✅ Connected to WhatsApp");
+
+      // 🔐 Request pairing ONLY once
+      if (!sock.authState.creds.registered && !pairingCodeSent) {
+        pairingCodeSent = true;
+
+        try {
+          const code = await sock.requestPairingCode(phoneNumber);
+          console.log("\n🔑 Your Pairing Code:", code);
+          console.log("👉 Go to WhatsApp > Linked Devices > Link with phone number\n");
+        } catch (err) {
+          console.log("❌ Pairing error:", err);
+        }
+      }
+    }
 
     if (connection === "close") {
       const shouldReconnect =
@@ -49,13 +56,13 @@ async function startBot() {
 
       if (shouldReconnect) {
         startBot();
+      } else {
+        console.log("⚠️ Logged out. Restart and relink.");
       }
-    } else if (connection === "open") {
-      console.log("✅ Jentle Bot connected successfully!");
     }
   });
 
-  // 📩 Message listener
+  // 📩 Messages
   sock.ev.on("messages.upsert", async ({ messages }) => {
     const msg = messages[0];
     if (!msg.message) return;
