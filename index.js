@@ -1,9 +1,8 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require("@whiskeysockets/baileys");
 const express = require("express");
 const pino = require("pino");
-const readline = require("readline");
 
-// 🌐 Express server (keeps Render alive)
+// 🌐 Express server
 const app = express();
 
 app.get("/", (req, res) => {
@@ -13,7 +12,9 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
 
-// 🤖 Start WhatsApp Bot
+// 🔑 PUT YOUR NUMBER HERE
+const phoneNumber = "2348106184386"; // replace with your number
+
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("auth");
 
@@ -25,23 +26,15 @@ async function startBot() {
 
   sock.ev.on("creds.update", saveCreds);
 
-  // 📲 Pairing Code Setup
+  // 📲 Auto pairing code
   if (!sock.authState.creds.registered) {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    rl.question("Enter your WhatsApp number (e.g. 234XXXXXXXXXX): ", async (number) => {
-      try {
-        const code = await sock.requestPairingCode(number);
-        console.log("\n🔑 Your Pairing Code:", code);
-        console.log("👉 Go to WhatsApp > Linked Devices > Link with phone number\n");
-        rl.close();
-      } catch (err) {
-        console.log("❌ Error generating pairing code:", err);
-      }
-    });
+    try {
+      const code = await sock.requestPairingCode(phoneNumber);
+      console.log("\n🔑 Your Pairing Code:", code);
+      console.log("👉 Go to WhatsApp > Linked Devices > Link with phone number\n");
+    } catch (err) {
+      console.log("❌ Error generating pairing code:", err);
+    }
   }
 
   // 🔄 Connection handling
@@ -56,8 +49,6 @@ async function startBot() {
 
       if (shouldReconnect) {
         startBot();
-      } else {
-        console.log("⚠️ Logged out. Restart and relink.");
       }
     } else if (connection === "open") {
       console.log("✅ Jentle Bot connected successfully!");
@@ -78,7 +69,6 @@ async function startBot() {
 
     console.log("📩 Message:", text);
 
-    // Simple command
     if (text.toLowerCase() === "hi") {
       await sock.sendMessage(from, {
         text: "Hello 👋 I'm Jentle Bot V2 🤖"
@@ -87,5 +77,4 @@ async function startBot() {
   });
 }
 
-// 🚀 Run bot
 startBot();
